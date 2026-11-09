@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090b0a">
+  <title>DOOM — Web Port</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090b0a;
+      --panel: #111613;
+      --panel2: #171e19;
+      --line: #354238;
+      --text: #e6e8df;
+      --muted: #a5b0a5;
+      --red: #bd3025;
+      --red2: #e24a32;
+      --green: #a4c06c;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: Tahoma, Arial, sans-serif; }
+    body {
+      background-image: radial-gradient(ellipse at 50% 0%, #263027 0, transparent 50%),
+                        repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 4px);
+    }
+    .shell { width: min(1060px, 100%); margin: 0 auto; padding: 20px 16px 28px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:16px; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .sigil { width:42px; height:42px; display:grid; place-items:center; border:1px solid #755046; background:#26100e; color:#f15a3e; font-weight:900; font-size:24px; box-shadow:inset 0 0 15px #000; }
+    h1 { margin:0; color:#f1eee1; font-family:Impact, 'Arial Narrow', sans-serif; letter-spacing:2px; font-size:clamp(26px,5vw,40px); direction:ltr; }
+    .sub { color:var(--muted); font-size:12px; margin-top:3px; }
+    .tag { border:1px solid var(--line); color:var(--green); padding:6px 10px; font-size:11px; white-space:nowrap; letter-spacing:1px; }
+    .layout { display:grid; grid-template-columns: 1fr 300px; gap:14px; align-items:start; direction:ltr; }
+    .screen-card, .side-card { border:1px solid var(--line); background:linear-gradient(180deg,#151b17,#0d110e); box-shadow:0 14px 42px #0009; }
+    .screen-card { padding:12px; direction:rtl; }
+    .screen-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:0 0 10px; color:var(--muted); font-size:12px; }
+    .screen-head strong { color:#e8e6dc; letter-spacing:1px; direction:ltr; }
+    .screen-wrap { position:relative; width:100%; aspect-ratio: 8 / 5; background:#000; border:1px solid #4a5148; overflow:hidden; }
+    canvas { display:block; width:100%; height:100%; image-rendering:pixelated; image-rendering:crisp-edges; background:#000; outline:none; }
+    .screen-overlay { position:absolute; inset:0; display:grid; place-items:center; padding:18px; background:linear-gradient(180deg,#080a08dd,#0b0c0bdd); text-align:center; }
+    .screen-overlay[hidden] { display:none; }
+    .overlay-box { max-width:440px; }
+    .overlay-box h2 { color:#e84c35; font-family:Impact, 'Arial Narrow', sans-serif; font-size:clamp(30px,7vw,54px); letter-spacing:2px; margin:0 0 10px; direction:ltr; }
+    .overlay-box p { color:#b8c0b4; font-size:13px; line-height:1.8; margin:6px 0; }
+    .bar { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; font-size:11px; color:var(--muted); }
+    .status { min-height:18px; color:var(--green); }
+    .side-card { padding:15px; direction:rtl; }
+    .side-card h3 { margin:0 0 13px; font-size:15px; color:#f0e6d8; }
+    label { display:block; font-size:12px; color:#c6cec2; margin:10px 0 6px; }
+    input[type=file], select { display:block; width:100%; min-height:40px; border:1px solid #3a473d; background:#090e0b; color:var(--text); padding:8px; border-radius:0; font:inherit; font-size:12px; }
+    button { font:inherit; cursor:pointer; }
+    .primary { width:100%; padding:12px 14px; margin-top:12px; border:1px solid #f06b4c; color:#fff5e9; font-weight:700; background:linear-gradient(#c83b2b,#8e211b); box-shadow:inset 0 1px #ff9c72,0 5px 18px #0008; }
+    .primary:disabled { opacity:.45; cursor:not-allowed; }
+    .secondary { border:1px solid var(--line); background:#151c17; color:#dce3d9; padding:8px 10px; font-size:11px; }
+    .hint { color:#9da99c; font-size:11px; line-height:1.8; margin:10px 0 0; }
+    .warning { margin-top:13px; padding:10px; border-right:3px solid #b84a35; background:#251411; color:#e5b9a9; font-size:11px; line-height:1.8; }
+    .controls { display:none; direction:ltr; align-items:center; justify-content:space-between; gap:14px; margin-top:12px; user-select:none; touch-action:none; }
+    .dpad { display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(2,46px); gap:5px; }
+    .dpad button, .action button { border:1px solid #536153; color:#e3e8dd; background:linear-gradient(#283229,#121914); box-shadow:inset 0 1px #ffffff18,0 3px 7px #0008; border-radius:4px; font-weight:bold; font-size:18px; touch-action:none; }
+    .dpad button:active, .action button:active { background:#6c3027; }
+    .dpad .up { grid-column:2; grid-row:1; }
+    .dpad .left { grid-column:1; grid-row:2; }
+    .dpad .down { grid-column:2; grid-row:2; }
+    .dpad .right { grid-column:3; grid-row:2; }
+    .action { display:flex; gap:8px; align-items:center; }
+    .action button { width:64px; height:58px; font-size:12px; }
+    .action .fire { background:linear-gradient(#9f3328,#5f1d19); border-color:#bd5745; }
+    .foot { color:#778278; text-align:center; font-size:10px; line-height:1.7; margin-top:18px; }
+    .foot a { color:#a9ba8a; }
+    @media (max-width: 760px) {
+      .shell { padding:12px 10px 20px; }
+      header { margin-bottom:11px; }
+      .tag { display:none; }
+      .layout { grid-template-columns:1fr; }
+      .side-card { order:2; }
+      .controls { display:flex; }
+    }
+    @media (max-width: 380px) {
+      .dpad { grid-template-columns:repeat(3,42px); grid-template-rows:repeat(2,42px); }
+      .action button { width:57px; height:52px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand">
+        <div class="sigil">D</div>
+        <div>
+          <h1>DOOM</h1>
+          <div class="sub">Original Linux DOOM 1.10 · WebAssembly port</div>
+        </div>
+      </div>
+      <div class="tag">CLASSIC ENGINE / BROWSER BUILD</div>
+    </header>
+
+    <section class="layout">
+      <div class="screen-card">
+        <div class="screen-head"><strong>GAME VIEW · 320 × 200</strong><span>Canvas / software renderer</span></div>
+        <div class="screen-wrap">
+          <canvas id="canvas" width="320" height="200" tabindex="0" aria-label="DOOM game screen"></canvas>
+          <div class="screen-overlay" id="start-overlay">
+            <div class="overlay-box">
+              <h2>DOOM</h2>
+              <p>ارفع ملف IWAD الأصلي الذي تملكه، ثم اضغط «ابدأ اللعبة».</p>
+              <p id="load-state">يتم تحميل محرك WebAssembly…</p>
+            </div>
+          </div>
+        </div>
+        <div class="bar">
+          <span class="status" id="runtime-status">في انتظار ملف اللعبة.</span>
+          <button class="secondary" id="fullscreen">ملء الشاشة</button>
+        </div>
+        <div class="controls" aria-label="Touch controls">
+          <div class="dpad">
+            <button class="up" data-key="173">▲</button>
+            <button class="left" data-key="172">◀</button>
+            <button class="down" data-key="175">▼</button>
+            <button class="right" data-key="174">▶</button>
+          </div>
+          <div class="action">
+            <button class="fire" data-key="157">FIRE / إطلاق</button>
+            <button data-key="32">USE / فتح</button>
+            <button data-key="182">RUN / ركض</button>
+            <button data-key="27">ESC</button>
+            <button data-key="9">MAP</button>
+          </div>
+        </div>
+        <div class="weapons-bar" style="display:flex;gap:4px;margin-top:8px;justify-content:center;">
+          <button class="secondary" data-key="49">1</button>
+          <button class="secondary" data-key="50">2</button>
+          <button class="secondary" data-key="51">3</button>
+          <button class="secondary" data-key="52">4</button>
+          <button class="secondary" data-key="53">5</button>
+          <button class="secondary" data-key="54">6</button>
+          <button class="secondary" data-key="55">7</button>
+        </div>
+      </div>
+
+      <aside class="side-card">
+        <h3>Launch / تشغيل اللعبة</h3>
+        <button class="secondary" id="fetch-shareware" style="width:100%;margin-bottom:10px;background:#2b1a13;border-color:#bd5745;color:#f0a890;font-weight:bold;">
+          ⚡ Fetch Shareware DOOM1.WAD (~4.2MB)
+        </button>
+        <label for="iwad-kind">IWAD Target Variant / نوع ملف IWAD</label>
+        <select id="iwad-kind">
+          <option value="doom1.wad">DOOM Shareware (doom1.wad)</option>
+          <option value="doom.wad">DOOM Registered (doom.wad)</option>
+          <option value="doomu.wad">The Ultimate DOOM (doomu.wad)</option>
+          <option value="doom2.wad">DOOM II / Freedoom 2 (doom2.wad)</option>
+          <option value="tnt.wad">Final DOOM: TNT (tnt.wad)</option>
+          <option value="plutonia.wad">Final DOOM: Plutonia (plutonia.wad)</option>
+        </select>
+        <label for="wad-file">Select WAD file / اختر ملف WAD من جهازك</label>
+        <input id="wad-file" type="file" accept=".wad,application/octet-stream">
+        <button class="primary" id="start-game" disabled>Start Game / ابدأ اللعبة</button>
+        <p class="hint">No copyrighted assets are bundled. You can upload any legally owned IWAD or fetch the official shareware episode.</p>
+        <div class="hint"><b>Desktop Controls:</b><br>WASD / Arrows to Move · Mouse Aim · Left Click / Ctrl to Fire · Space to Open · Shift to Run · Esc for Menu.</div>
+      </aside>
+    </section>
+
+    <div class="foot">
+      هذا منفذ متصفح لمحرك DOOM الأصلي 1.10، وليس إعادة كتابة ثلاثية الأبعاد بـ JavaScript.<br>
+      المصدر الأصلي مرفق مع رخصته؛ يحتاج إلى بناء Emscripten لإنشاء ملفي <code>doom.js</code> و<code>doom.wasm</code>.
+    </div>
+  </main>
+
+  <script>
+    let wasmReady = false;
+    let gameStarted = false;
+    const canvas = document.getElementById('canvas');
+    const statusNode = document.getElementById('runtime-status');
+    const loadState = document.getElementById('load-state');
+    const startButton = document.getElementById('start-game');
+    const overlay = document.getElementById('start-overlay');
+
+    var Module = {
+      canvas: canvas,
+      noInitialRun: true,
+      print: (...args) => console.log('[DOOM]', ...args),
+      printErr: (...args) => console.error('[DOOM]', ...args),
+      onRuntimeInitialized: function () {
+        wasmReady = true;
+        loadState.textContent = 'المحرك جاهز. اختر ملف WAD لبدء اللعب.';
+        statusNode.textContent = 'المحرك جاهز.';
+        startButton.disabled = false;
+      },
+      onAbort: function (reason) {
+        statusNode.textContent = 'تعذر تشغيل المحرك: ' + reason;
+        loadState.textContent = 'حدث خطأ أثناء تحميل المحرك.';
+      }
+    };
+
+    document.getElementById('fullscreen').addEventListener('click', async () => {
+      try {
+        if (!document.fullscreenElement) await document.querySelector('.screen-wrap').requestFullscreen();
+        else await document.exitFullscreen();
+      } catch (e) { statusNode.textContent = 'تعذر تفعيل ملء الشاشة.'; }
+    });
+
+    let activeWadData = null;
+
+    document.getElementById('fetch-shareware').addEventListener('click', async () => {
+      const btn = document.getElementById('fetch-shareware');
+      btn.disabled = true;
+      btn.textContent = 'Downloading DOOM1.WAD…';
+      statusNode.textContent = 'Downloading shareware WAD (~4.2MB)…';
+      try {
+        const res = await fetch('https://raw.githubusercontent.com/Daivuk/PureDOOM/master/doom1.wad');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+        activeWadData = new Uint8Array(buf);
+        document.getElementById('iwad-kind').value = 'doom1.wad';
+        statusNode.textContent = 'DOOM1.WAD downloaded! Click "Start Game".';
+        startButton.disabled = false;
+        btn.textContent = '✓ DOOM1.WAD Ready';
+      } catch (e) {
+        statusNode.textContent = 'Download failed: ' + e.message + '. Please pick a local file.';
+        btn.disabled = false;
+        btn.textContent = '⚡ Retry Fetch Shareware';
+      }
+    });
+
+    startButton.addEventListener('click', async () => {
+      if (!wasmReady || gameStarted) return;
+      let data = activeWadData;
+      if (!data) {
+        const fileInput = document.getElementById('wad-file');
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) {
+          statusNode.textContent = 'Select or fetch an IWAD file first.';
+          return;
+        }
+        data = new Uint8Array(await file.arrayBuffer());
+      }
+      const magic = String.fromCharCode(data[0], data[1], data[2], data[3]);
+      if (magic !== 'IWAD') {
+        statusNode.textContent = 'الملف ليس IWAD. ملف PWAD وحده لا يكفي لتشغيل اللعبة.';
+        return;
+      }
+
+      const path = '/doom';
+      const targetName = document.getElementById('iwad-kind').value;
+      try {
+        const FS = Module.FS;
+        try { FS.mkdir(path); } catch (_) {}
+        try { FS.mkdir('/home'); } catch (_) {}
+        try { FS.mkdir('/home/web_user'); } catch (_) {}
+        const known = ['doom1.wad', 'doom.wad', 'doomu.wad', 'doom2.wad', 'tnt.wad', 'plutonia.wad', 'doom2f.wad'];
+        for (const name of known) {
+          try { FS.unlink(path + '/' + name); } catch (_) {}
+        }
+        FS.writeFile(path + '/' + targetName, data);
+      } catch (e) {
+        statusNode.textContent = 'تعذر قراءة ملف WAD داخل المتصفح: ' + e.message;
+        return;
+      }
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          window.__doomAudioContext = window.__doomAudioContext || new AudioContextClass();
+          await window.__doomAudioContext.resume();
+        }
+      } catch (_) { /* Audio may be blocked; game can still run silently. */ }
+
+      gameStarted = true;
+      startButton.disabled = true;
+      statusNode.textContent = 'يتم تشغيل DOOM…';
+      overlay.hidden = true;
+      canvas.focus();
+      try {
+        Module._Web_StartGame();
+        statusNode.textContent = 'اللعبة تعمل.';
+      } catch (e) {
+        console.error(e);
+        statusNode.textContent = 'فشل بدء اللعبة: ' + e.message;
+        gameStarted = false;
+        startButton.disabled = false;
+        overlay.hidden = false;
+      }
+    });
+
+    function bindTouchControls() {
+      document.querySelectorAll('[data-key]').forEach((button) => {
+        const key = Number(button.dataset.key);
+        const down = (event) => {
+          event.preventDefault();
+          if (gameStarted && Module._Web_KeyEvent) Module._Web_KeyEvent(key, 1);
+        };
+        const up = (event) => {
+          event.preventDefault();
+          if (gameStarted && Module._Web_KeyEvent) Module._Web_KeyEvent(key, 0);
+        };
+        button.addEventListener('pointerdown', down);
+        button.addEventListener('pointerup', up);
+        button.addEventListener('pointercancel', up);
+        button.addEventListener('lostpointercapture', up);
+        button.addEventListener('contextmenu', (e) => e.preventDefault());
+      });
+    }
+    bindTouchControls();
+
+    canvas.addEventListener('click', () => {
+      if (gameStarted && canvas.requestPointerLock) canvas.requestPointerLock();
+    });
+
+    const engineScript = document.createElement('script');
+    engineScript.src = 'doom.js';
+    engineScript.onerror = function () {
+      loadState.textContent = 'لم يتم العثور على doom.js. نفّذ ./build-web.sh بعد تثبيت Emscripten.';
+      statusNode.textContent = 'ملفات البناء غير موجودة بعد.';
+    };
+    document.body.appendChild(engineScript);
+  </script>
+</body>
+</html>

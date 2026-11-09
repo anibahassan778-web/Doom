@@ -1,0 +1,6 @@
+{
+  "name": "DOOM WebAssembly Port",
+  "description": "Native browser port of the original classic DOOM engine compiled to WebAssembly with HTML5 canvas, Web Audio, pointer lock mouse controls, and mobile touch support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
